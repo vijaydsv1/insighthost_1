@@ -2,22 +2,27 @@
   "name": "insighthost_1",
   "version": "1.0.0",
   "type": "module",
-  "description": "",
+  "description": "LangChain Pinecone ingestion and retrieval example",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "ingest": "node ingest.js",
+    "query": "node extract.js",
+    "start": "node extract.js",
+    "test": "echo \"No tests defined\""
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vijaydsv1/insighthost_1.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "langchain",
+    "pinecone",
+    "openai",
+    "vector-search",
+    "rag"
+  ],
+  "author": "Vijay Kumar",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/vijaydsv1/insighthost_1/issues"
-  },
-  "homepage": "https://github.com/vijaydsv1/insighthost_1#readme",
   "dependencies": {
     "@langchain/openai": "^1.4.4",
     "@langchain/pinecone": "^1.0.1",
