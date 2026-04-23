@@ -51,7 +51,7 @@ async function search() {
 
     console.log(doc.pageContent.substring(0, 250))
 
-    console.log(`\n📚 Citation: ${doc.metadata.filename}\n`)
+    console.log(`\n📚 Citation: ${doc.metadata?.filename || "Unknown source"}\n`)
 
   })
 
