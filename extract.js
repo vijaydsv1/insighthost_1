@@ -6,20 +6,22 @@ import { PineconeStore } from "@langchain/pinecone"
 dotenv.config()
 
 // Get question from command line
-const question = process.argv.slice(2).join(" ")
+const question = process.argv.slice(2).join(" ").trim()
 
 if (!question) {
   console.log("❌ Please provide a question")
   console.log('Example: node extract.js "What services does Accion provide?"')
-  process.exit()
+  process.exit(1)
 }
+
+console.log(`\n💬 Question: ${question}\n`)
 
 // Initialize Pinecone
 const pinecone = new Pinecone({
   apiKey: process.env.PINECONE_API_KEY
 })
 
-const index = pinecone.Index(process.env.PINECONE_INDEX)
+const pineconeIndex = pinecone.Index(process.env.PINECONE_INDEX)
 
 // Initialize embeddings
 const embeddings = new OpenAIEmbeddings({
@@ -28,32 +30,42 @@ const embeddings = new OpenAIEmbeddings({
 
 async function search() {
 
-  console.log("\n🔎 Searching Pinecone...\n")
+  try {
 
-  const vectorStore = await PineconeStore.fromExistingIndex(
-    embeddings,
-    { pineconeIndex: index }
-  )
+    console.log("🔎 Searching Pinecone...\n")
 
-  const results = await vectorStore.similaritySearch(question, 3)
+    const vectorStore = await PineconeStore.fromExistingIndex(
+      embeddings,
+      { pineconeIndex }
+    )
 
-  if (results.length === 0) {
-    console.log("No results found.")
-    return
+    const results = await vectorStore.similaritySearch(question, 3)
+
+    if (!results || results.length === 0) {
+      console.log("❌ No results found.")
+      return
+    }
+
+    console.log("📄 Top Results:\n")
+
+    results.forEach((doc, i) => {
+
+      console.log(`Result ${i + 1}`)
+      console.log("------------------------------------")
+
+      const text = doc.pageContent?.substring(0, 250) || "No content available"
+      const source = doc.metadata?.filename || "Unknown source"
+
+      console.log(text)
+      console.log(`\n📚 Citation: ${source}\n`)
+
+    })
+
+  } catch (error) {
+
+    console.error("❌ Error during search:", error.message)
+
   }
-
-  console.log("📄 Top Results:\n")
-
-  results.forEach((doc, i) => {
-
-    console.log(`Result ${i + 1}`)
-    console.log("------------------------------------")
-
-    console.log(doc.pageContent.substring(0, 250))
-
-    console.log(`\n📚 Citation: ${doc.metadata?.filename || "Unknown source"}\n`)
-
-  })
 
 }
 
