@@ -1,23 +1,27 @@
-# InsightHost Pinecone Retrieval (LangChain JS)
+# InsightHost RAG System (LangChain + Gemini + Pinecone)
 
 This project implements a **Retrieval Augmented Generation (RAG) pipeline** using **LangChain (JavaScript), Google Gemini embeddings, and Pinecone vector database**.
 
-The system ingests documents (including **PDFs with OCR support**), stores embeddings in Pinecone, and retrieves relevant information using natural language queries.
+The system ingests documents (including **PDFs with OCR support**), generates vector embeddings, stores them in Pinecone, and retrieves relevant information to answer user questions using a **Gemini LLM-powered REST API**.
 
 ---
 
-# Features
+# Key Features
 
-- Document ingestion into Pinecone
-- PDF text extraction
-- OCR support for image-based PDFs
-- Text chunking using LangChain
-- Gemini embeddings for vector generation
-- Semantic search using Pinecone
-- Natural language question answering
-- Source citations for retrieved content
-- Duplicate-safe ingestion
-- Support for multiple documents
+* Document ingestion into Pinecone
+* PDF text extraction
+* OCR support for image-based PDFs
+* Text chunking using LangChain
+* Gemini embeddings for vector generation
+* Semantic vector search using Pinecone
+* **MMR retrieval for better context diversity**
+* **Hybrid retrieval (semantic + keyword ranking)**
+* REST API for question answering
+* Context-grounded answers using system prompts
+* Source citations for retrieved content
+* Duplicate-safe ingestion
+* Support for multiple documents
+* Fast vector store initialization
 
 ---
 
@@ -27,7 +31,8 @@ The system ingests documents (including **PDFs with OCR support**), stores embed
 insighthost_1
 │
 ├── ingestGoogle.js        # Document ingestion pipeline
-├── extractGoogle.js       # Query and answer generation
+├── server.js              # REST API for RAG queries
+├── system_prompt.md       # System prompt for grounded responses
 │
 ├── package.json
 ├── .env                   # API keys (not committed)
@@ -41,13 +46,14 @@ insighthost_1
 
 # Technologies Used
 
-- LangChain (JavaScript)
-- Google Gemini API
-- Pinecone Vector Database
-- Node.js
-- PDF.js (PDF parsing)
-- Tesseract.js (OCR for image PDFs)
-- Sharp (image preprocessing for OCR)
+* LangChain (JavaScript)
+* Google Gemini API
+* Pinecone Vector Database
+* Node.js
+* Express.js
+* PDF.js (PDF parsing)
+* Tesseract.js (OCR for scanned PDFs)
+* Sharp (image preprocessing for OCR)
 
 ---
 
@@ -59,7 +65,7 @@ insighthost_1
 npm install
 ```
 
-If OCR support is required:
+For OCR support:
 
 ```
 npm install pdfjs-dist tesseract.js sharp
@@ -87,14 +93,14 @@ Run the ingestion script:
 node ingestGoogle.js
 ```
 
-This process will:
+The ingestion pipeline performs:
 
-1. Read documents from the `documents/` folder
-2. Extract text from PDFs
-3. Apply OCR for image-based pages
-4. Split text into chunks
-5. Generate Gemini embeddings
-6. Upload vectors to Pinecone
+1. Reads files from the `documents/` folder
+2. Extracts text from PDFs
+3. Runs OCR for image-based pages
+4. Splits text into chunks
+5. Generates Gemini embeddings
+6. Uploads vectors to Pinecone
 
 Example output:
 
@@ -107,31 +113,55 @@ Example output:
 
 ---
 
-# Query the System
+# Start the RAG API
 
-Run:
-
-```
-node extractGoogle.js "What are the four risks discussed in the summit?"
-```
-
-Example Output:
+Run the REST API server:
 
 ```
-Answer:
-The summit discusses four key risks including strategic misalignment,
-technology adoption challenges, talent shortages, and market volatility.
+node server.js
+```
 
-Sources:
-[Source 1] Accion Labs Innovation Summit 2026 Synopsis.pdf (chunk 28)
+Server will start at:
+
+```
+http://localhost:3000
 ```
 
 ---
 
-# How the System Works
+# Query the System
+
+Send a POST request:
 
 ```
-Documents (PDF/TXT)
+POST http://localhost:3000/extractRAG
+```
+
+Request body:
+
+```
+{
+  "question": "What are the four risks discussed in the summit?"
+}
+```
+
+Example response:
+
+```
+{
+  "answer": "The summit discusses four key risks related to enterprise AI adoption including governance challenges, scaling limitations, security risks, and workforce readiness. [Source 1]",
+  "sources": [
+    "Accion Labs Innovation Summit 2026 Synopsis.pdf"
+  ]
+}
+```
+
+---
+
+# System Architecture
+
+```
+Documents (PDF / TXT)
         ↓
 Text Extraction + OCR
         ↓
@@ -141,11 +171,13 @@ Gemini Embeddings
         ↓
 Pinecone Vector Database
         ↓
-Semantic Search
+MMR Retrieval
         ↓
-Gemini LLM Answer Generation
+Hybrid Reranking
         ↓
-Citations Returned
+Gemini LLM
+        ↓
+Answer + Citations
 ```
 
 ---
@@ -159,7 +191,11 @@ chunkSize: 800
 chunkOverlap: 150
 ```
 
-This improves retrieval quality for long PDF documents by preserving contextual information between chunks.
+Benefits:
+
+* Preserves contextual continuity
+* Improves retrieval accuracy
+* Reduces semantic fragmentation
 
 ---
 
@@ -168,32 +204,51 @@ This improves retrieval quality for long PDF documents by preserving contextual 
 The ingestion pipeline generates deterministic vector IDs:
 
 ```
-filename-chunkNumber
+filename-chunkNumber-lastModified
 ```
 
 This ensures:
 
-- Re-ingesting the same document **updates vectors**
-- Duplicate vectors are **not created**
-- Updated documents **replace old vectors**
+* Re-ingesting the same document **updates vectors**
+* Duplicate vectors are **not created**
+* Updated documents **replace older versions**
+
+---
+
+# Retrieval Improvements
+
+The system uses multiple retrieval optimizations:
+
+### MMR Retrieval
+
+Ensures diverse and relevant chunks are selected.
+
+### Hybrid Reranking
+
+Combines semantic similarity and keyword matching.
+
+### Context Grounding
+
+System prompts ensure answers use only retrieved document content.
 
 ---
 
 # Future Improvements
 
-Possible enhancements:
+Potential enhancements:
 
-- Gemini reranking for improved retrieval accuracy
-- Streaming responses
-- Web interface for querying
-- Multi-document filtering
-- Hybrid search (vector + keyword)
+* Query rewriting for better retrieval
+* Streaming responses
+* Web interface for querying
+* Multi-document filtering
+* Hybrid vector + BM25 search
+* Response caching for faster queries
 
 ---
 
 # Author
 
-Vijay Kumar
+**Vijay Kumar**
 
-AI / ML Engineer  
+AI / ML Engineer
 LangChain • RAG • Vector Databases • LLM Systems

@@ -51,20 +51,21 @@ async function uploadInBatches(
 
     for (const doc of batch) {
 
-      const vector = await embeddings.embedQuery(doc.pageContent)
+    const vectors = await embeddings.embedDocuments([doc.pageContent])
+    const vector = vectors[0]
 
-      if (!vector || vector.length !== 3072) {
+    if (!vector || vector.length !== 3072) {
         console.log("⚠️ Skipping invalid embedding chunk")
         continue
-      }
+    }
 
-      await index.upsert([
-        {
-          id: `${doc.metadata.filename}-${doc.metadata.chunk}`,
-          values: vector,
-          metadata: doc.metadata
-        }
-      ])
+    await index.upsert([
+    {
+    id: `${doc.metadata.filename}-${doc.metadata.chunk}-${doc.metadata.lastModified}`,
+    values: vector,
+    metadata: doc.metadata
+    }
+    ])
 
     }
 
@@ -272,6 +273,7 @@ async function ingest() {
         metadata: {
             filename: file,
             chunk: i,
+            text: cleanChunk, 
             lastModified: fileModifiedTime
             }
         })
